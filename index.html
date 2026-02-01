@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Question</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Josefin+Sans:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cream: #f5f0eb;
+    --charcoal: #1a1a1a;
+    --rose: #c47a7a;
+    --rose-light: #d4a0a0;
+    --gold: #b8976a;
+    --gold-light: #d4b48c;
+    --text-muted: #8a7e72;
+    --shadow: rgba(0,0,0,0.12);
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'Josefin Sans', sans-serif;
+    background: var(--cream);
+    color: var(--charcoal);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── AMBIENT TEXTURE ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 120% 60% at 20% 80%, rgba(196,122,122,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 50% at 80% 20%, rgba(184,151,106,0.06) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 40% at 50% 50%, rgba(196,122,122,0.04) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── GRAIN OVERLAY ─── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* ─── SCREEN / STEP SYSTEM ─── */
+  .screen {
+    position: absolute; inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s cubic-bezier(.4,0,.2,1), transform 0.7s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .screen.active {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /* ─── TYPOGRAPHY ─── */
+  .label-top {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 200;
+    font-size: 0.72rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 1.8rem;
+    opacity: 0.7;
+  }
+
+  .question {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.7rem, 4.5vw, 2.6rem);
+    line-height: 1.35;
+    text-align: center;
+    color: var(--charcoal);
+    max-width: 480px;
+    margin-bottom: 2.8rem;
+  }
+  .question em {
+    font-style: italic;
+    color: var(--rose);
+  }
+
+  /* ─── BUTTONS ─── */
+  .btn-row {
+    display: flex;
+    gap: 1.2rem;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .btn {
+    position: relative;
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 300;
+    font-size: 0.78rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.2rem;
+    border: 1px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    outline: none;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .btn-yes {
+    background: var(--charcoal);
+    color: var(--cream);
+    border-color: var(--charcoal);
+  }
+  .btn-yes:hover {
+    background: var(--rose);
+    border-color: var(--rose);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(196,122,122,0.25);
+  }
+  .btn-yes:active { transform: translateY(0); }
+
+  .btn-no {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: #d5cfc8;
+    transition: all 0.25s cubic-bezier(.4,0,.2,1);
+  }
+  .btn-no:hover {
+    border-color: var(--rose-light);
+    color: var(--rose);
+  }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 1.6rem;
+  }
+
+  /* ─── FINAL REVEAL (YES screen) ─── */
+  #screen-yes .card {
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+  }
+  #screen-yes .card-top {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 200;
+    font-size: 0.68rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeSlideUp 0.7s 0.3s forwards;
+  }
+  #screen-yes .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.3;
+    color: var(--charcoal);
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeSlideUp 0.7s 0.5s forwards;
+  }
+  #screen-yes .card-line {
+    width: 36px; height: 1px;
+    background: var(--rose);
+    margin: 0 auto 2rem;
+    opacity: 0;
+    animation: fadeIn 0.6s 0.75s forwards;
+  }
+  #screen-yes .card-body {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+    line-height: 1.85;
+    color: var(--text-muted);
+    opacity: 0;
+    animation: fadeSlideUp 0.8s 0.95s forwards;
+  }
+  #screen-yes .card-sign {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.1rem;
+    color: var(--rose);
+    margin-top: 2.2rem;
+    opacity: 0;
+    animation: fadeSlideUp 0.7s 1.3s forwards;
+  }
+
+  /* ─── SUBTLE PARTICLE DOTS ─── */
+  .particle {
+    position: fixed;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--gold-light);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    animation: particleDrift linear infinite;
+  }
+
+  /* ─── KEYFRAMES ─── */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  @keyframes particleDrift {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    15%  { opacity: 0.35; }
+    85%  { opacity: 0.25; }
+    100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+  }
+
+  /* ─── NO BUTTON ESCAPE (desktop + mobile) ─── */
+  .btn-no.escaping {
+    transition: left 0.18s cubic-bezier(.2,.8,.3,1), top 0.18s cubic-bezier(.2,.8,.3,1) !important;
+  }
+
+  /* ─── MOBILE TOUCH HINT ─── */
+  .touch-hint {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 200;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.5;
+    text-align: center;
+    z-index: 2;
+    pointer-events: none;
+    display: none;
+  }
+  @media (hover: none) {
+    .touch-hint { display: block; }
+  }
+
+  /* tiny screen safety */
+  @media (max-height: 500px) {
+    .question { font-size: 1.4rem; margin-bottom: 1.8rem; }
+    .btn { padding: 0.7rem 1.6rem; font-size: 0.7rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── STEP 1: Are you a girl? ─── -->
+<div id="screen-1" class="screen active">
+  <p class="label-top">A moment</p>
+  <div class="question">Are you a <em>girl</em>?</div>
+  <div class="divider"></div>
+  <div class="btn-row">
+    <button class="btn btn-yes" onclick="goTo('screen-2')">Yes</button>
+    <button class="btn btn-no" onclick="goTo('screen-end-no')">No</button>
+  </div>
+</div>
+
+<!-- ─── STEP 2: Are you straight? ─── -->
+<div id="screen-2" class="screen">
+  <p class="label-top">Good to know</p>
+  <div class="question">Are you <em>straight</em>?</div>
+  <div class="divider"></div>
+  <div class="btn-row">
+    <button class="btn btn-yes" onclick="goTo('screen-3')">Yes</button>
+    <button class="btn btn-no" onclick="goTo('screen-end-no')">No</button>
+  </div>
+</div>
+
+<!-- ─── STEP 3: Will you be my valentine? (NO button escapes) ─── -->
+<div id="screen-3" class="screen">
+  <p class="label-top">Here it is</p>
+  <div class="question">Will you be my <em>valentine</em>?</div>
+  <div class="divider"></div>
+  <div class="btn-row" id="val-btn-row">
+    <button class="btn btn-yes" onclick="goTo('screen-yes')">Yes</button>
+    <button class="btn btn-no" id="no-btn" tabindex="-1">No</button>
+  </div>
+</div>
+
+<!-- ─── YES REVEAL ─── -->
+<div id="screen-yes" class="screen">
+  <div class="card">
+    <p class="card-top">February 14</p>
+    <h1 class="card-title">I'm glad<br>you said yes.</h1>
+    <div class="card-line"></div>
+    <p class="card-body">
+      There's something about you that doesn't need a grand stage —<br>
+      just the quiet certainty that you're the one I'd choose<br>
+      to sit next to on an ordinary evening<br>
+      and still feel like I'm exactly where I'm supposed to be.
+    </p>
+    <p class="card-sign">— yours this Valentine's</p>
+  </div>
+</div>
+
+<!-- ─── POLITE DEAD END (for "No" on screens 1 & 2) ─── -->
+<div id="screen-end-no" class="screen">
+  <p class="label-top">Noted</p>
+  <div class="question" style="color: var(--text-muted); font-size: clamp(1.2rem,3vw,1.7rem);">
+    That's fair.<br><em style="color:var(--rose);">Maybe next time.</em>
+  </div>
+  <div class="divider"></div>
+  <button class="btn btn-yes" onclick="goTo('screen-1')" style="margin-top:0.4rem;">← Back</button>
+</div>
+
+<!-- Mobile hint -->
+<div class="touch-hint">Tap carefully — things might move</div>
+
+<script>
+// ─── NAVIGATION ───
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-3') initNoBtn();
+}
+
+// ─── PARTICLE AMBIENT ───
+(function spawnParticles() {
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (8 + Math.random() * 14) + 's';
+    p.style.animationDelay = (Math.random() * 12) + 's';
+    p.style.width = p.style.height = (2 + Math.random() * 2.5) + 'px';
+    document.body.appendChild(p);
+  }
+})();
+
+// ─── NO BUTTON ESCAPE LOGIC ───
+let noBtn, noBtnRect, containerRect, escapeActive = false;
+
+function initNoBtn() {
+  noBtn = document.getElementById('no-btn');
+  if (!noBtn) return;
+
+  // Reset position
+  noBtn.style.position = 'relative';
+  noBtn.style.left = '0';
+  noBtn.style.top = '0';
+  escapeActive = true;
+
+  // DESKTOP: mousemove on document
+  document.addEventListener('mousemove', onMouseMove);
+
+  // MOBILE: touchmove on document  
+  document.addEventListener('touchmove', onTouchMove, { passive: true });
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+}
+
+function getNoPos() {
+  const r = noBtn.getBoundingClientRect();
+  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height };
+}
+
+function onMouseMove(e) {
+  if (!escapeActive || !noBtn || !document.getElementById('screen-3').classList.contains('active')) return;
+
+  const pos = getNoPos();
+  const dx = e.clientX - pos.cx;
+  const dy = e.clientY - pos.cy;
+  const dist = Math.hypot(dx, dy);
+
+  // Trigger escape when cursor is within 70px
+  if (dist < 70) {
+    nudgeAway(dx, dy, dist);
+  }
+}
+
+function nudgeAway(dx, dy, dist) {
+  // Direction AWAY from cursor
+  const nx = -dx / dist;
+  const ny = -dy / dist;
+
+  // How far to jump (80–140px)
+  const jump = 100 + Math.random() * 60;
+
+  const currentLeft = parseFloat(noBtn.style.left) || 0;
+  const currentTop  = parseFloat(noBtn.style.top)  || 0;
+
+  let newLeft = currentLeft + nx * jump;
+  let newTop  = currentTop  + ny * jump;
+
+  // Clamp inside viewport with padding
+  const pad = 20;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const r  = noBtn.getBoundingClientRect();
+  const btnW = r.width, btnH = r.height;
+
+  // Current absolute position of button
+  const absLeft = r.left - btnW/2 + newLeft - currentLeft;
+  const absTop  = r.top  - btnH/2 + newTop  - currentTop;
+
+  if (absLeft < pad)               newLeft += (pad - absLeft);
+  if (absLeft + btnW > vw - pad)   newLeft -= (absLeft + btnW - vw + pad);
+  if (absTop  < pad)               newTop  += (pad - absTop);
+  if (absTop  + btnH > vh - pad)   newTop  -= (absTop  + btnH - vh + pad);
+
+  noBtn.classList.add('escaping');
+  noBtn.style.left = newLeft + 'px';
+  noBtn.style.top  = newTop  + 'px';
+
+  setTimeout(() => noBtn && noBtn.classList.remove('escaping'), 220);
+}
+
+// ─── MOBILE TOUCH ESCAPE ───
+let lastTouchPos = null;
+
+function onTouchStart(e) {
+  if (!escapeActive || !noBtn || !document.getElementById('screen-3').classList.contains('active')) return;
+  const t = e.touches[0];
+  lastTouchPos = { x: t.clientX, y: t.clientY };
+  checkMobileTrigger(t.clientX, t.clientY);
+}
+
+function onTouchMove(e) {
+  if (!escapeActive || !noBtn || !document.getElementById('screen-3').classList.contains('active')) return;
+  const t = e.touches[0];
+  lastTouchPos = { x: t.clientX, y: t.clientY };
+  checkMobileTrigger(t.clientX, t.clientY);
+}
+
+function checkMobileTrigger(tx, ty) {
+  const pos = getNoPos();
+  const dx = tx - pos.cx;
+  const dy = ty - pos.cy;
+  const dist = Math.hypot(dx, dy);
+
+  // On mobile trigger at 55px (finger is bigger)
+  if (dist < 55) {
+    nudgeAway(dx, dy, dist);
+  }
+}
+
+// ─── CLEANUP on screen change ───
+const origGoTo = goTo;
+goTo = function(id) {
+  if (id !== 'screen-3') {
+    escapeActive = false;
+  }
+  origGoTo(id);
+};
+</script>
+</body>
+</html>
